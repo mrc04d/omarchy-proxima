@@ -1,0 +1,8 @@
+# Editor / OS noise
+*.bak.*
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
