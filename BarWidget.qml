@@ -9,6 +9,10 @@ BarWidget {
 
     readonly property string helper: Qt.resolvedUrl("helpers/proxima-helper.py").toString().replace(/^file:\/\//, "")
     readonly property string proximaDir: setting("proximaDir", "~/Work/Proxima")
+
+    function helperEnv() {
+        return { "PROXIMA_DIR": root.proximaDir };
+    }
     property bool alive: false
     property bool allLoggedIn: false
     property int loggedCount: 0
@@ -43,7 +47,7 @@ BarWidget {
     Process {
         id: statusProc
         command: ["python3", root.helper, "status"]
-        environment: ({ "PROXIMA_DIR": root.proximaDir })
+        environment: root.helperEnv()
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: root.applyStatus(text)

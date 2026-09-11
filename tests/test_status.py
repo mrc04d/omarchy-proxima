@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Contract test for the helper's `status` path.
+"""Contract tests for the helper's `status` path.
 
 Spawns a fake Proxima IPC server on a test port, points the helper at it with
-PROXIMA_TEST_PORT, and asserts the emitted JSON. Stdlib only; run directly:
+PROXIMA_TEST_PORT, and asserts the emitted JSON. Stdlib only:
 
+    python3 -m unittest discover -s tests -v
     python3 tests/test_status.py
 """
 import json
@@ -12,6 +13,7 @@ import socket
 import subprocess
 import sys
 import threading
+import unittest
 
 PORT = 19299
 PROVIDERS = ["claude", "chatgpt", "gemini", "perplexity"]
@@ -56,28 +58,39 @@ def serve():
     srv.close()
 
 
-def run():
-    threading.Thread(target=serve, daemon=True).start()
-    env = dict(os.environ, PROXIMA_TEST_PORT=str(PORT))
-    out = subprocess.run(
-        [sys.executable, HELPER, "status"],
-        capture_output=True,
-        text=True,
-        timeout=20,
-        env=env,
-    )
-    if out.returncode != 0:
-        print("helper exited", out.returncode, out.stderr, file=sys.stderr)
-        return 1
-    data = json.loads(out.stdout.strip().splitlines()[-1])
-    assert data["alive"] is True, data
-    assert data["count"] == 3, data
-    assert data["allLoggedIn"] is False, data
-    assert data["providers"]["gemini"] is False, data
-    assert data["providers"]["claude"] is True, data
-    print("test_status: CONTRACT OK")
-    return 0
+class StatusContract(unittest.TestCase):
+    def test_three_of_four_logged_in(self):
+        threading.Thread(target=serve, daemon=True).start()
+        env = dict(os.environ, PROXIMA_TEST_PORT=str(PORT))
+        out = subprocess.run(
+            [sys.executable, HELPER, "status"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            env=env,
+        )
+        self.assertEqual(out.returncode, 0, out.stderr)
+        data = json.loads(out.stdout.strip().splitlines()[-1])
+        self.assertTrue(data["alive"], data)
+        self.assertEqual(data["count"], 3, data)
+        self.assertFalse(data["allLoggedIn"], data)
+        self.assertFalse(data["providers"]["gemini"], data)
+        self.assertTrue(data["providers"]["claude"], data)
+
+    def test_dead_port_reports_not_running(self):
+        env = dict(os.environ, PROXIMA_TEST_PORT="19999")
+        out = subprocess.run(
+            [sys.executable, HELPER, "status"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            env=env,
+        )
+        self.assertEqual(out.returncode, 0, out.stderr)
+        data = json.loads(out.stdout.strip().splitlines()[-1])
+        self.assertFalse(data["alive"], data)
+        self.assertEqual(data["count"], 0, data)
 
 
 if __name__ == "__main__":
-    sys.exit(run())
+    unittest.main(verbosity=2)
