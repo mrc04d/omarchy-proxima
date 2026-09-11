@@ -4,6 +4,8 @@ An [Omarchy](https://omarchy.org) bar widget that shows the health of
 [Proxima](https://github.com/Zen4-bit/Proxima) Agent Hub at a glance, and gives
 you one-click access to its window.
 
+![Proxima Status states](preview.png)
+
 ## What it shows
 
 A single status dot in the bar, always visible:
