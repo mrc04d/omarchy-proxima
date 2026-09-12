@@ -89,7 +89,13 @@ def status_providers(deadline=None, errors=None):
 
 
 def cmd_status():
-    # M1: monotonic ~8s deadline across the 4 probes + liveness check.
+    alive = True
+    try:
+        s = socket.create_connection(("127.0.0.1", load_port()), timeout=2.0)
+        s.close()
+    except Exception as e:
+        alive = False
+    # M1: monotonic ~8s deadline across the 4 probes only.
     deadline = time.monotonic() + 8.0
     first_errors = []
     try:
@@ -97,22 +103,9 @@ def cmd_status():
     except Exception as e:
         print(json.dumps({"alive": False, "allLoggedIn": False, "count": 0, "providers": {p: False for p in PROVIDERS}, "error": str(e)[:300]}))
         return 0
-    # If the socket itself is down, all entries are False; detect liveness
-    # with a cheap second signal: try one raw connect.
-    alive = True
-    try:
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise TimeoutError("status deadline exceeded")
-        s = socket.create_connection(("127.0.0.1", load_port()), timeout=min(2.0, remaining))
-        s.close()
-    except Exception as e:
-        alive = False
-        if not first_errors:
-            first_errors.append(str(e)[:300])
-    count = sum(1 for v in providers.values() if v) if alive else 0
     if not alive:
         providers = {p: False for p in PROVIDERS}
+    count = sum(1 for v in providers.values() if v) if alive else 0
     print(json.dumps({
         "alive": alive,
         "allLoggedIn": bool(alive and all(providers.values())),
