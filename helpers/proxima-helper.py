@@ -39,7 +39,7 @@ def load_token():
         return None
 
 
-def ipc_request(action, provider=None, timeout=2.0):
+def ipc_request(action, provider=None, timeout=5.0):
     """One IPC round-trip. Returns parsed response dict; raises on failure."""
     port = load_port()
     req = {"requestId": 1, "action": action, "provider": provider, "data": {}}
@@ -95,8 +95,8 @@ def cmd_status():
         s.close()
     except Exception as e:
         alive = False
-    # M1: monotonic ~8s deadline across the 4 probes only.
-    deadline = time.monotonic() + 8.0
+    # M1: monotonic ~15s deadline across the 4 probes only.
+    deadline = time.monotonic() + 15.0
     first_errors = []
     try:
         providers = status_providers(deadline=deadline, errors=first_errors)
